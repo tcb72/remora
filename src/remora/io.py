@@ -20,7 +20,7 @@ LOGGER = log.get_logger()
 
 # Note sm and sd tags are not required, but highly recommended to pass
 # basecaller scaling into remora
-REQUIRED_TAGS = {"mv", "MD"}
+REQUIRED_TAGS = {"mv"}
 
 _SIG_PROF_FN = os.getenv("REMORA_EXTRACT_SIGNAL_PROFILE_FILE")
 _ALIGN_PROF_FN = os.getenv("REMORA_EXTRACT_ALIGN_PROFILE_FILE")
@@ -405,40 +405,38 @@ class Read:
             else ref_pos.start + ref_len - read_focus_ref_pos[::-1] - 1
         )
 
-    def get_base_call_anchored_focus_bases(
-        self, motifs, select_focus_reference_positions: Optional
-    ):
-        if self.cigar is None:
-            raise RemoraError("missing alignment")
+    def get_base_call_anchored_focus_bases(self, motifs, randomer_length, randomer_error_bases, beg_known_seq,end_known_seq, focus_offset, select_focus_reference_positions: Optional):
+        # if self.cigar is None:
+        #     raise RemoraError("missing alignment")
 
         basecall_int_seq = util.seq_to_int(self.seq)
-        reference_int_seq = util.seq_to_int(self.ref_seq)
+        #reference_int_seq = util.seq_to_int(self.ref_seq)
 
         all_base_call_focus_positions = util.find_focus_bases_in_int_sequence(
-            int_seq=basecall_int_seq, motifs=motifs
+            basecall_int_seq, randomer_length, randomer_error_bases, beg_known_seq, end_known_seq, focus_offset
         )
         # mapping of reference sequence positions to base call sequence
         # positions
-        mapping = DC.make_sequence_coordinate_mapping(
-            cigar=self.cigar, read_seq=self.seq, ref_seq=self.ref_seq
-        )
-
-        reference_motif_positions = (
-            util.find_focus_bases_in_int_sequence(reference_int_seq, motifs)
-            if select_focus_reference_positions is None
-            else self.get_filtered_focus_positions(
-                select_focus_positions=select_focus_reference_positions,
-            )
-        )
-        reference_supported_focus_bases = mapping[reference_motif_positions]
-        base_call_focus_bases = np.array(
-            [
-                focus_base
-                for focus_base in all_base_call_focus_positions
-                if focus_base in reference_supported_focus_bases
-            ]
-        )
-        return base_call_focus_bases
+        # mapping = DC.make_sequence_coordinate_mapping(
+        #     cigar=self.cigar, read_seq=self.seq, ref_seq=self.ref_seq
+        # )
+        #
+        # reference_motif_positions = (
+        #     util.find_focus_bases_in_int_sequence(reference_int_seq, motifs)
+        #     if select_focus_reference_positions is None
+        #     else self.get_filtered_focus_positions(
+        #         select_focus_positions=select_focus_reference_positions,
+        #     )
+        # )
+        # reference_supported_focus_bases = mapping[reference_motif_positions]
+        # base_call_focus_bases = np.array(
+        #     [
+        #         focus_base
+        #         for focus_base in all_base_call_focus_positions
+        #         if focus_base in reference_supported_focus_bases
+        #     ]
+        # )
+        return all_base_call_focus_positions
 
 
 @dataclass

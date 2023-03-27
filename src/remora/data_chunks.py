@@ -3,7 +3,6 @@ import re
 from collections import Counter
 from dataclasses import dataclass
 from typing import List, Tuple
-
 import torch
 import numpy as np
 from tqdm import tqdm
@@ -305,14 +304,23 @@ class RemoraRead:
         if check_read:
             self.check()
 
-    def set_motif_focus_bases(self, motifs):
+    def set_motif_focus_bases(self, randomer_length, randomer_error_bases, beg_known_seq, end_known_seq, focus_offset):
         """
         Mutates self. Sets self.focus_bases to all hits within self.int_seq.
         :param motifs: Iterable of util.Motifs
         """
+
         self.focus_bases = util.find_focus_bases_in_int_sequence(
-            self.int_seq, motifs
+            self.int_seq, randomer_length, randomer_error_bases, beg_known_seq, end_known_seq, focus_offset
         )
+        print(self.focus_bases.shape)
+
+    def set_motif_focus_bases_infer(self):
+        """
+        Mutates self. Sets self.focus_bases to all hits within self.int_seq.
+        :param motifs: Iterable of util.Motifs
+        """
+        self.focus_bases = np.array([i for i in range(len(self.int_seq))],dtype=int)
 
     def downsample_focus_bases(self, max_sites):
         if self.focus_bases is not None and self.focus_bases.size > max_sites:
@@ -473,6 +481,7 @@ class RemoraRead:
         )
         if len(chunks) == 0:
             return
+
         dataset = RemoraDataset.allocate_empty_chunks(
             num_chunks=len(chunks),
             chunk_context=model_metadata["chunk_context"],
@@ -485,6 +494,7 @@ class RemoraRead:
             shuffle_on_iter=False,
             drop_last=False,
         )
+
         for chunk in chunks:
             dataset.add_chunk(chunk)
         dataset.set_nbatches()

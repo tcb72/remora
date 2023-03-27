@@ -119,6 +119,36 @@ def register_dataset_prepare(parser):
         "ragged arrays of chunk sequences. Default: %(default)s",
     )
     data_grp.add_argument(
+        "--focus-offset",
+        type=int,
+        default=constants.FOCUS_OFFSET,
+        help="How many bases into the randomer your focus position is.",
+    )
+    data_grp.add_argument(
+        "--beg-known-seq",
+        type=str,
+        default=constants.BEG_KNOWN_SEQ,
+        help="Known sequence prior to randomer start",
+    )
+    data_grp.add_argument(
+        "--end-known-seq",
+        type=str,
+        default=constants.END_KNOWN_SEQ,
+        help="Known sequence after randomer end",
+    )
+    data_grp.add_argument(
+        "--randomer-length",
+        type=int,
+        default=constants.RANDOMER_LENGTH,
+        help="Length of randomer",
+    )
+    data_grp.add_argument(
+        "--randomer-error-bases",
+        type=int,
+        default=constants.RANDOMER_ERROR_BASES,
+        help="Randomers within randomer_length +- randomer_error_bases will still be considered. For example, if the randomer length is 61 and randomer error bases is 3, it will still consider randomers from length 58 to 64.",
+    )
+    data_grp.add_argument(
         "--kmer-context-bases",
         nargs=2,
         default=constants.DEFAULT_KMER_CONTEXT_BASES,
@@ -278,6 +308,11 @@ def run_dataset_prepare(args):
         args.output_remora_training_file,
         args.mod_base,
         args.mod_base_control,
+        args.randomer_length,
+        args.randomer_error_bases,
+        args.beg_known_seq,
+        args.end_known_seq,
+        args.focus_offset,
         motifs,
         focus_ref_pos,
         args.chunk_context,

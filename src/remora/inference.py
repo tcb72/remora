@@ -75,7 +75,7 @@ def call_read_mods(
     """
     if focus_offset is None:
         motifs = [Motif(*mot) for mot in model_metadata["motifs"]]
-        read.set_motif_focus_bases(motifs)
+        read.set_motif_focus_bases_infer()
     else:
         read.focus_bases = np.array([focus_offset])
     read.prepare_batches(model_metadata, batch_size)
@@ -214,7 +214,7 @@ def prepare_batches(read_errs, model_metadata, batch_size, ref_anchored):
             out_read_errs.append((None, None, "Remora read prep error"))
             continue
         motifs = [Motif(*mot) for mot in model_metadata["motifs"]]
-        remora_read.set_motif_focus_bases(motifs)
+        remora_read.set_motif_focus_bases_infer()
         remora_read.prepare_batches(model_metadata, batch_size)
         if len(remora_read.batches) == 0:
             out_read_errs.append((None, None, "No mod calls"))
@@ -239,6 +239,7 @@ def run_model(read_errs, model, model_metadata, ref_anchored):
     out_read_errs = []
     for io_read, remora_read, err in read_errs:
         if err is not None:
+            print('err is not none')
             out_read_errs.append((None, err))
             continue
         # TODO super-batch reads to optimize performance for short reads
@@ -361,7 +362,7 @@ def infer_from_pod5_and_bam(
     sig_called = 0
     in_bam = out_bam = pbar = None
     try:
-        in_bam = pysam.AlignmentFile(in_bam_path, "rb")
+        in_bam = pysam.AlignmentFile(in_bam_path, "rb", check_sq = False)
         out_bam = pysam.AlignmentFile(out_bam_path, "wb", template=in_bam)
         pbar = tqdm(
             smoothing=0,

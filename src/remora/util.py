@@ -43,6 +43,8 @@ COMP_BASES = dict(zip(map(ord, "ACGT"), map(ord, "TGCA")))
 NP_COMP_BASES = np.array([3, 2, 1, 0], dtype=np.uintp)
 U_TO_T_BASES = {ord("U"): ord("T")}
 
+CAN_LETTERS = {i: CAN_ALPHABET[SEQ_TO_INT_ARR[ord(base) - ord('A')]] for i, base in enumerate("ACGT")}
+
 DEFAULT_QUEUE_SIZE = 10_000
 
 
@@ -62,17 +64,25 @@ def iter_motif_hits(int_seq, motif):
     )[0]
 
 
-def find_focus_bases_in_int_sequence(
-    int_seq: np.ndarray, motifs: list
-) -> np.ndarray:
-    return np.fromiter(
-        set(
-            mot_pos + mot.focus_pos
-            for mot in motifs
-            for mot_pos in iter_motif_hits(int_seq, mot)
-        ),
-        int,
-    )
+def find_focus_bases_in_int_sequence(int_seq: np.ndarray, randomer_length: int, randomer_error_bases: int, beg_known_seq: str,end_known_seq: str, focus_offset: int) -> np.ndarray:
+    result = []
+
+
+    # Convert int_seq to a string of bases
+    seq_str = "".join(CAN_LETTERS[b] for b in int_seq)
+
+    # Search for the motif directly
+    randomer_length_lower_bound = randomer_length - randomer_error_bases
+    randomer_length_upper_bound = randomer_length + randomer_error_bases
+    regex_pattern = beg_known_seq + "(.{" + str(randomer_length_lower_bound) + ','+str(randomer_length_upper_bound)+"})" + end_known_seq
+    matches = re.finditer(regex_pattern, seq_str)
+
+    # Add the focus position to the result
+    for match in matches:
+        focus_pos = match.start() + len(beg_known_seq) + focus_offset
+        result.append(focus_pos)
+
+    return np.array(result, dtype=int)
 
 
 def comp(seq):
@@ -273,7 +283,12 @@ def format_mm_ml_tags(seq, poss, probs, mod_bases, can_base, strand: str = "+"):
     Returns:
         MM string tag and ML array tag
     """
-
+    print(seq)
+    print(poss)
+    print(probs)
+    print(mod_bases)
+    print(can_base)
+    print(strand)
     # initialize dict with all called mods to make sure all called mods are
     # shown in resulting tags
     per_mod_probs = dict((mod_base, []) for mod_base in mod_bases)
@@ -290,17 +305,22 @@ def format_mm_ml_tags(seq, poss, probs, mod_bases, can_base, strand: str = "+"):
         if len(pos_probs) == 0:
             continue
         mod_poss, probs = zip(*sorted(pos_probs))
+
         # compute modified base positions relative to the running total of the
         # associated canonical base
+        #can_base='A'
         can_base_mod_poss = (
             np.cumsum([1 if b == can_base else 0 for b in seq])[
                 np.array(mod_poss)
             ]
             - 1
         )
+        print('Can base mod poss',can_base_mod_poss)
         mod_gaps = ",".join(
             map(str, np.diff(np.insert(can_base_mod_poss, 0, -1)) - 1)
         )
+
+        print(mod_gaps)
         mm_tag += f"{can_base}{strand}{mod_base}?,{mod_gaps};"
         # extract mod scores and scale to 0-255 range
         scaled_probs = np.floor(np.array(probs) * 256)

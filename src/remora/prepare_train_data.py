@@ -27,6 +27,7 @@ from remora.io import (
 LOGGER = log.get_logger()
 
 
+
 ####################
 # Chunk extraction #
 ####################
@@ -44,23 +45,34 @@ def extract_chunks(
     base_pred,
     base_start_justify,
     offset,
+    randomer_length,
+    randomer_error_bases,
+    beg_known_seq,
+    end_known_seq,
+    focus_offset,
     basecall_anchored,
 ):
+    basecall_anchored = True
     read_chunks = []
     for read_idx, (io_read, err) in enumerate(read_errs):
         if io_read is None:
             read_chunks.append(tuple((io_read, err)))
             continue
-        if io_read.ref_seq is None:
-            read_chunks.append(
-                tuple((None, "No reference sequence (missing MD tag)"))
-            )
-            continue
+        # if io_read.ref_seq is None:
+        #     read_chunks.append(
+        #         tuple((None, "No reference sequence (missing MD tag)"))
+        #     )
+        #     continue
         if basecall_anchored:
             remora_read = io_read.into_remora_read(use_reference_anchor=False)
             remora_read.focus_bases = (
                 io_read.get_base_call_anchored_focus_bases(
                     motifs=motifs,
+                    randomer_length=randomer_length,
+                    randomer_error_bases=randomer_error_bases,
+                    beg_known_seq=beg_known_seq,
+                    end_known_seq=end_known_seq,
+                    focus_offset=focus_offset,
                     select_focus_reference_positions=focus_ref_pos,
                 )
             )
@@ -130,6 +142,11 @@ def extract_chunk_dataset(
     out_fn,
     mod_base,
     mod_base_control,
+    randomer_length,
+    randomer_error_bases,
+    beg_known_seq,
+    end_known_seq,
+    focus_offset,
     motifs,
     focus_ref_pos,
     chunk_context,
@@ -145,7 +162,7 @@ def extract_chunk_dataset(
     num_extract_chunks_threads,
     signal_first=True,
     skip_non_primary=True,
-    base_call_anchor=False,
+    base_call_anchor=True,
 ):
     if signal_first:
         bam_idx, num_bam_reads = index_bam(bam_fn, skip_non_primary)
@@ -212,6 +229,7 @@ def extract_chunk_dataset(
             name="AddAlignments",
             use_process=True,
         )
+
     else:
         mappings = BackgroundIter(
             iter_alignments,
@@ -243,6 +261,11 @@ def extract_chunk_dataset(
             base_pred,
             base_start_justify,
             offset,
+            randomer_length,
+            randomer_error_bases,
+            beg_known_seq,
+            end_known_seq,
+            focus_offset,
             base_call_anchor,
         ],
         name="ExtractChunks",
